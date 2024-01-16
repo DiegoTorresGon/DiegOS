@@ -18,23 +18,21 @@ gdt_code: ; This is the code segment descriptor
 	; type flags: (code)1 (conforming)0 (readable)1 (accesed)0 => 1010b
 	; 2nd flags: (granularity)1 (32-bit default)1 (64-bit segment)0 (AVL)0 => 1100b
 	dw 0xffff ; limit (bits 15-0)
-	dw 0x0 ; base (bits 15-0) ; This is part of the mechanism for paging, this
-	db 0x0 ; base (bits 23-16)
+	dw 0x0000 ; base (bits 15-0) ; This is part of the mechanism for paging, this
+	db 0x00 ; base (bits 23-16)
 	db 10011010b ; 1st flags, type flags
 	db 11001111b ; 2nd flags, limit (bits 16-19)
-	db 0x0 ; base (bits 31-24)
+	db 0x00 ; base (bits 31-24)
 
 gdt_data: ; This is the data segment descriptor
-	; base = 0x0, limit = 0xffff,
-	; 1st flags: (present)1 (privilege)00 (descriptor type)1 => 1001b
-	; type flags: (code)1 (conforming)0 (readable)1 (accesed)0 => 1010b
-	; 2nd flags: (granularity)1 (32-bit default)1 (64-bit segment)0 (AVL)0 => 1100b
+	; Same as code but type flags change.
+	; type flags: (code)0 (expand down)0 (readable)1 (accesed)0 => 0010b
 	dw 0xffff ; limit (bits 15-0)
-	dw 0x0 ; base (bits 15-0) ; This is part of the mechanism for paging, this
-	db 0x0 ; base (bits 23-16)
-	db 10011010b ; 1st flags, type flags
+	dw 0x0000 ; base (bits 15-0) ; This is part of the mechanism for paging, this
+	db 0x00 ; base (bits 23-16)
+	db 10010010b ; 1st flags, type flags
 	db 11001111b ; 2nd flags, limit (bits 16-19)
-	db 0x0 ; base (bits 31-24)
+	db 0x00 ; base (bits 31-24)
 	
 gdt_end: ; We put a label here so the compiler can help us calculate the size
 		 ; of the gdt.
