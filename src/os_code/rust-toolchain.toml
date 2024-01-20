@@ -1,3 +1,3 @@
 [toolchain]
 channel = "nightly"
-build-std = ["core", "alloc"]
+target = [ "i686-unknown-bare_metal.json" ]

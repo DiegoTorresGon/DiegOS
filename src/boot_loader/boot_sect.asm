@@ -11,9 +11,9 @@ mov sp, bp 					; This top pointer starts at the same location as botton (the st
 
 call load_kernel			; Routine to load drive sectors corresponding to kernel.
 
-mov dx, BPOINT
-call print_hex
 
+mov bx, MSG_ENTRY
+call println
 call switch_to_pm			; Routine to switch CPU into proper 32-bit protected mode.
 
 jmp $
@@ -32,7 +32,7 @@ load_kernel:
 
 	mov bx, KERNEL_OFFSET 	; This is were we actually tell the routine
 							; to load kernel code with this offset. 
-	mov dh, 15				; loading 15 sectors to leave space for the future
+	mov dh, 72 				; loading 15 sectors to leave space for the future
 							; when kernel is bigger.
 	mov dl, [BOOT_DRIVE]
 	call disk_load								
@@ -43,10 +43,6 @@ load_kernel:
 BEGIN_PM:
  	mov ebx, MSG_PM
  	call println32
-	
-	mov dx, BPOINT
-	call print32_hex
-BPOINT:
 	call KERNEL_OFFSET 
 
  	jmp $
@@ -54,9 +50,11 @@ BPOINT:
 
 BOOT_DRIVE: db 0		; This 0 just saves the space for 1 byte.
 MSG_LOAD_KERNEL:
-	db "Loading kernel in memory", 0
+	db "Loading kernel...", 0
 MSG_PM:
 	db "Entered 32-bit PM", 0
+MSG_ENTRY:
+	db "Kernel loaded.", 0
 
 times 510-($-$$) db 0
 dw 0xaa55

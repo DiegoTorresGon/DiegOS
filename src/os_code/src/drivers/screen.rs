@@ -1,5 +1,6 @@
 use core::arch::asm;
 use core::default::Default;
+use core::fmt;
 
 //Available collors to use with VGA-FrameBugger:
 //  Black   -   0,  Red     -   4,  Dark Grey   -   8,  Light Red       -   12,
@@ -24,11 +25,13 @@ const FB_SEND_LOW : u8 = 15;
 const FB_COLS : usize = 80;
 const FB_ROWS : usize = 25;
 
+#[derive(Clone)]
 pub struct WriteOut {
     rep_code : RepCode,
-    frame_buff : FrameBuffer,
+    pub frame_buff : FrameBuffer,
 }
 
+#[derive(Clone)]
 pub struct FrameBuffer {
     cursor : ScreenPointer,
     buffer_start : *mut ScreenChar, 
@@ -42,7 +45,7 @@ pub struct ScreenChar {
 }
 
 #[repr(transparent)]
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct ScreenPointer(usize);
 
 #[derive(Copy, Clone)]
@@ -119,15 +122,27 @@ impl FrameBuffer {
     }
 
     pub fn write_buff(&mut self, write_buffer : &[u8], rep_code : RepCode) {
+        if self.cursor.is_out() { self.scroll(); }
+
         for ascii_char in write_buffer.iter() {
             unsafe {
                 *self.buffer_start.wrapping_add(self.cursor.0)  
                     = ScreenChar{ ascii_char : *ascii_char, rep_code };
             }
             self.inc_cursor();
-
-            if self.cursor.is_out() { self.scroll(); }
         }
+    }
+
+    pub fn write_times(&mut self, byte : &u8, rep_code : RepCode, times : usize) {
+        for _ in 0..times {
+            if self.cursor.is_out() { self.scroll() }
+            unsafe {
+                *self.buffer_start.wrapping_add(self.cursor.0)
+                    = ScreenChar{ ascii_char : *byte, rep_code };
+            }
+            self.inc_cursor();
+        }
+
     }
 
     pub fn scroll(&mut self) {
@@ -183,11 +198,28 @@ impl WriteOut {
         }
     }
 
+    pub fn clear_screen(&mut self) {
+        self.frame_buff.move_cursor(0);
+        self.frame_buff.write_times(&0x20, RepCode::new(FB_BLACK, FB_BLACK), 
+                                    FrameBuffer::SIZE);
+        self.frame_buff.move_cursor(0);
+    }
+
     fn new_line(&mut self) {
         self.frame_buff.move_cursor(
             ScreenPointer::from_xy(0, self.frame_buff.cursor.row() + 1).0 as u16);
     }
 
+}
+
+impl fmt::Write for WriteOut {
+    fn write_str(&mut self, s : &str) -> Result<(), fmt::Error> {
+        if s.len() > FrameBuffer::SIZE {
+            return Err(fmt::Error);
+        }
+        _ = self.write(s);
+        Ok(())
+    }
 }
 
 
