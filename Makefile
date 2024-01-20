@@ -7,12 +7,16 @@ CC=nasm
 
 KERNEL_OBJ_DIR := src/os_code/target/i686-unknown-bare_metal/release/deps
 
-KERNEL_INCLUDES := $(shell ls -R src/os_code | egrep ^'[^.]*\.o$^' | egrep -v ^'*core*|*os_code*|*\.[^o]^')
+KERNEL_INCLUDES := $(shell ls -R src/os_code | egrep ^'[^.]*\.o$^' | egrep -v ^'*alloc*|*core*|*os_code*|*\.[^o]^')
 
 KERNEL_MAIN := $(KERNEL_OBJ_DIR)/$(shell ls -R src/os_code | egrep ^'os_code[^.]*\.o$^' | egrep -v ^'*\.[^o]^')
 KERNEL_FULL_INCLUDES := $(addprefix $(KERNEL_OBJ_DIR)/, $(KERNEL_INCLUDES))
 
 SRC_FILES := $(addprefix $(SRC_DIR)/, $(shell ls -R $(SRC_DIR) | egrep ^'[^.]*\.rs$^' | egrep -v ^'*\.[^^(rs^)]^'))
+
+
+OS_IMG = os.img
+C_IMG = c.img
 
 LINKER_SCRIPT := src/link.ls
 
