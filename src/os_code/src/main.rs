@@ -1,10 +1,8 @@
 #![no_std]
 #![no_main]
+#![no_builtins]
 #![feature(rustc_private)]
 
-//extern crate alloc;
-extern crate compiler_builtins;
-//extern crate rlibc;
 
 use core::panic::PanicInfo;
 use core::fmt::Write;

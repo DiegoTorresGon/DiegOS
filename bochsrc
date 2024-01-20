@@ -1,7 +1,7 @@
-floppya: 2_88="os.img", status=inserted
+floppya: 1_44=os.img, status=inserted
 display_library: sdl2 
 config_interface: textconfig
-log: bochsout.txt
 boot: a
+log: bochsout.txt
 romimage: file=$BXSHARE/BIOS-bochs-latest
 memory: guest=128, host=512
