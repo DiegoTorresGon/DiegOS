@@ -14,6 +14,8 @@ KERNEL_FULL_INCLUDES := $(addprefix $(KERNEL_OBJ_DIR)/, $(KERNEL_INCLUDES))
 
 SRC_FILES := $(addprefix $(SRC_DIR)/, $(shell ls -R $(SRC_DIR) | egrep ^'[^.]*\.rs$^' | egrep -v ^'*\.[^^(rs^)]^'))
 
+LINKER_SCRIPT := src/link.ls
+
 all: os.img
 
 kernel: $(wildcard $(SRC_DIR)/*.rs)
@@ -31,7 +33,7 @@ os.img: $(BUILD)/boot_sect.bin $(BUILD)/kernel.bin
 
 $(BUILD)/kernel.bin: $(BUILD)/kernel_entry.o kernel
 	@echo "Start linking:"
-	ld -m elf_i386 -o $@ -Ttext 0x1000 -A i386 $< '$(KERNEL_MAIN)' --oformat binary
+	ld -m elf_i386 -o $@ -T $(LINKER_SCRIPT) -A i386 $< '$(KERNEL_MAIN)' --oformat binary
 
 clean:
 	rm -rf $(BUILD)/*
