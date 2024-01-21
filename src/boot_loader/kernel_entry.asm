@@ -3,3 +3,5 @@
 
 call _start
 jmp $
+
+;times 10240-($-$$) db 0

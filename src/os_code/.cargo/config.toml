@@ -4,7 +4,10 @@ build-std-features = ["compiler-builtins-mem"]
 
 [build]
 target = "i686-unknown-bare_metal.json"
-rustflags="--emit=obj -Crelocation-model=static -Ccode-model=kernel"
+rustflags = [
+	"--emit=obj", "-Crelocation-model=static", 
+	"-Ccode-model=kernel"
+]
 
 [profile.release]
 opt-level = 'z'

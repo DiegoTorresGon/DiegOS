@@ -1,8 +1,8 @@
 #![no_std]
 #![no_main]
-#![no_builtins]
-#![feature(rustc_private)]
+//#![feature(rustc_private)]
 
+//extern crate compiler_builtins;
 
 use core::panic::PanicInfo;
 use core::fmt::Write;
@@ -11,18 +11,18 @@ pub mod drivers;
 
 use drivers::screen::*;
 
-static mut screen_out : Option<WriteOut> = None;
+static mut SCREEN_OUT : Option<WriteOut> = None;
 
 #[no_mangle]
 pub extern "C" fn _start() -> ! {
 
     unsafe{
-        screen_out = Some(WriteOut::new(
+        SCREEN_OUT = Some(WriteOut::new(
             FrameBuffer::default(),
             RepCode::new(FB_BLUE, FB_LIGHT_BROWN)));
     }
 
-    let mut out = unsafe { screen_out.as_ref().unwrap().clone() };
+    let mut out = unsafe { SCREEN_OUT.as_ref().unwrap().clone() };
 
     out.clear_screen();
     for _ in 0..10 {
@@ -32,6 +32,10 @@ pub extern "C" fn _start() -> ! {
 
     out.write("This is awesome!");
     //panic!("Error");
+    //let mut a : Option<i32> = None;
+    //a.expect("daf");
+    //I think what is going here is the size of the binary cannot be higher
+    //than 4 kb for now.
 
 
     loop {}
@@ -40,15 +44,14 @@ pub extern "C" fn _start() -> ! {
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
 
-    //let mut out = unsafe { screen_out.clone() };
-    match unsafe { screen_out.clone() } {
+    //let mut out = unsafe { SCREEN_OUT.clone() };
+    match unsafe { SCREEN_OUT.clone() } {
         Some(mut out) => {
             out.frame_buff.move_cursor(0);
-            write!(&mut out, "{:?}", info);
+            let _ = write!(&mut out, "{:?}", info);
 
             loop{}
         },
         None => loop{},
     }
-    loop{}
 }

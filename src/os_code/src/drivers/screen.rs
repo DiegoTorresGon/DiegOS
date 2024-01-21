@@ -1,6 +1,7 @@
 use core::arch::asm;
 use core::default::Default;
 use core::fmt;
+//use volatile::Volatile;
 
 //Available collors to use with VGA-FrameBugger:
 //  Black   -   0,  Red     -   4,  Dark Grey   -   8,  Light Red       -   12,

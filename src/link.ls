@@ -1,4 +1,5 @@
 ENTRY(_start)
+EXTERN(_start)
 
 SECTIONS {
     . = 0x1000;
@@ -9,7 +10,16 @@ SECTIONS {
         *(.text*)
     }
 
-    .rodata* : {
+    .rodata : {
         *(.rodata*)
     }
+
+	.data : {
+		*(.data)
+	}
+
+	/DISCARD/ :
+	{
+		*(.comment)
+	}
 }
