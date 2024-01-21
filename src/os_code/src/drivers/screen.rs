@@ -1,7 +1,8 @@
 use core::arch::asm;
 use core::default::Default;
 use core::fmt;
-//use volatile::Volatile;
+use volatile::Volatile;
+use spin::{Mutex, MutexGuard};
 
 //Available collors to use with VGA-FrameBugger:
 //  Black   -   0,  Red     -   4,  Dark Grey   -   8,  Light Red       -   12,
@@ -18,6 +19,15 @@ pub const FB_LIGHT_GREEN : u8 = 10; pub const FB_LIGHT_BROWN : u8 = 14;
 pub const FB_CYAN : u8 = 3; pub const FB_LIGHT_GREY : u8 = 7;
 pub const FB_LIGHT_CYAN : u8 = 11; pub const FB_WHITE : u8 = 15;
 
+pub const FB_BLINK_BLACK : u8 = 0b1000;
+pub const FB_BLINK_BLUES : u8 = 0b1001;
+pub const FB_BLINK_GREEN : u8 = 0b1010;
+pub const FB_BLINK_CYAN : u8 = 0b1011;
+pub const FB_BLINK_RED : u8 = 0b1100;
+pub const FB_BLINK_MAGENTA : u8 = 0b1101;
+pub const FB_BLINK_BROWN : u8 = 0b1110;
+pub const FB_BLINK_GREY : u8 = 0b1111;
+
 const FB_COMMAND_PORT : u16 = 0x3d4;
 const FB_DATA_PORT : u16 = 0x3d5;
 const FB_SEND_HIGH : u8 = 14;
@@ -26,16 +36,19 @@ const FB_SEND_LOW : u8 = 15;
 const FB_COLS : usize = 80;
 const FB_ROWS : usize = 25;
 
+
+pub static mut SCREEN_OUT : Option<Mutex::<WriteOut>> = None; 
+
 #[derive(Clone)]
 pub struct WriteOut {
-    rep_code : RepCode,
+    pub rep_code : RepCode,
     pub frame_buff : FrameBuffer,
 }
 
 #[derive(Clone)]
 pub struct FrameBuffer {
     cursor : ScreenPointer,
-    buffer_start : *mut ScreenChar, 
+    buffer_start : *mut Volatile<ScreenChar>,
 }
 
 #[derive(Copy, Clone)]
@@ -53,9 +66,44 @@ pub struct ScreenPointer(usize);
 #[repr(transparent)]
 pub struct RepCode(u8);
 
+pub fn init_out(rep : RepCode) {
+    unsafe { SCREEN_OUT = Some(
+        Mutex::new(
+            WriteOut::new(
+                FrameBuffer::default(),
+                rep
+                )
+            )
+        );
+    }
+}
+
+pub fn out_handle() -> MutexGuard<'static, WriteOut> {
+    let handle = unsafe { SCREEN_OUT.as_mut().unwrap().lock() };
+    handle
+}
+
+pub fn _print(args : fmt::Arguments) {
+    use fmt::Write;
+    unsafe {
+        SCREEN_OUT.as_mut().unwrap().lock().write_fmt(args).unwrap();
+    }
+}
+#[macro_export]
+macro_rules! println {
+    () => ($crate::print!("\n"));
+    ($($arg:tt)*) => ($crate::print!("{}\n", format_args!($($arg)*)));
+}
+
+#[macro_export]
+macro_rules! print {
+    ($($arg:tt)*) => ($crate::screen::_print(format_args!($($arg)*)));
+}
+
+
 impl RepCode {
-    pub fn new(foreground : u8, background : u8) -> RepCode {
-        RepCode((foreground << 4) | background)
+    pub fn new(background : u8, foreground : u8) -> RepCode {
+        RepCode((background << 4) | foreground)
     }
 }
 
@@ -127,8 +175,8 @@ impl FrameBuffer {
 
         for ascii_char in write_buffer.iter() {
             unsafe {
-                *self.buffer_start.wrapping_add(self.cursor.0)  
-                    = ScreenChar{ ascii_char : *ascii_char, rep_code };
+                (*self.buffer_start.wrapping_add(self.cursor.0)).write(  
+                    ScreenChar{ ascii_char : *ascii_char, rep_code });
             }
             self.inc_cursor();
         }
@@ -138,8 +186,8 @@ impl FrameBuffer {
         for _ in 0..times {
             if self.cursor.is_out() { self.scroll() }
             unsafe {
-                *self.buffer_start.wrapping_add(self.cursor.0)
-                    = ScreenChar{ ascii_char : *byte, rep_code };
+                (*self.buffer_start.wrapping_add(self.cursor.0)).write(
+                    ScreenChar{ ascii_char : *byte, rep_code });
             }
             self.inc_cursor();
         }
@@ -153,8 +201,8 @@ impl FrameBuffer {
             }
             unsafe { 
                 let to_copy = ScreenPointer(i + FB_COLS);
-                *self.buffer_start.wrapping_add(i) = 
-                    *self.buffer_start.wrapping_add(to_copy.0);
+                (*self.buffer_start.wrapping_add(i)).write( 
+                    (*self.buffer_start.wrapping_add(to_copy.0)).read());
             }
         }
         self.cursor.dec_row();
@@ -184,7 +232,7 @@ impl WriteOut {
     pub fn write(&mut self, out_str : &str) {
         for ascii_char in out_str.as_bytes() {
             match ascii_char {
-                0x20..=0x7e | b'\n' => self.write_byte(ascii_char),
+                0x20..=0x7e | b'\n' | b'\t' => self.write_byte(ascii_char),
                 _ => self.write_byte(&Self::UNPRINTABLE_SUBSTITUTE),
             }
         }
@@ -193,6 +241,7 @@ impl WriteOut {
     fn write_byte(&mut self, byte : &u8) {
         match byte {
             b'\n' => self.new_line(),
+            b'\t' => self.frame_buff.write_buff(b"    ", self.rep_code),
             byte => {
                 self.frame_buff.write_buff(&[*byte], self.rep_code);
             },

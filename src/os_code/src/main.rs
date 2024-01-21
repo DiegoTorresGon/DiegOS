@@ -1,6 +1,7 @@
 #![no_std]
 #![no_main]
 //#![feature(rustc_private)]
+#![feature(panic_info_message)]
 
 //extern crate compiler_builtins;
 
@@ -10,48 +11,48 @@ use core::fmt::Write;
 pub mod drivers;
 
 use drivers::screen::*;
-
-static mut SCREEN_OUT : Option<WriteOut> = None;
+use drivers::screen;
 
 #[no_mangle]
 pub extern "C" fn _start() -> ! {
 
-    unsafe{
-        SCREEN_OUT = Some(WriteOut::new(
-            FrameBuffer::default(),
-            RepCode::new(FB_BLUE, FB_LIGHT_BROWN)));
-    }
+    screen::init_out(RepCode::new(FB_BLACK, FB_WHITE));
 
-    let mut out = unsafe { SCREEN_OUT.as_ref().unwrap().clone() };
+    out_handle().clear_screen();
 
-    out.clear_screen();
-    for _ in 0..10 {
-        out.write("hello\n");
-        //write!(&mut out, "Hello {}!\n", "world");
-    }
+    print!("\t\tDiegOS\n\n");
+    out_handle().rep_code = RepCode::new(FB_BLACK, FB_LIGHT_GREY);
+    print!("Booting proces has started.\n\
+            We are initializing some stuff.\n\
+            Hold tightly...");
 
-    out.write("This is awesome!");
-    //panic!("Error");
-    //let mut a : Option<i32> = None;
-    //a.expect("daf");
-    //I think what is going here is the size of the binary cannot be higher
-    //than 4 kb for now.
-
+    panic!("Awwwwgh!!! Horror panic is coming!!!");
 
     loop {}
 }
 
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
-
-    //let mut out = unsafe { SCREEN_OUT.clone() };
-    match unsafe { SCREEN_OUT.clone() } {
-        Some(mut out) => {
-            out.frame_buff.move_cursor(0);
-            let _ = write!(&mut out, "{:?}", info);
-
-            loop{}
+    out_handle().rep_code = RepCode::new(FB_RED, FB_WHITE);
+    match info.message() {
+        Some(msg) => {
+            println!("\n\nPanic at:\t{}", info.location().unwrap());
+            println!("\"{}\"", msg);
         },
-        None => loop{},
+        None => {
+            println!("\n\n{:?}", info);
+        }
+    }
+    loop{}
+}
+
+fn hello_dance() {
+    loop {
+        for i in 0..15 {
+            for j in 0..15 {
+                out_handle().rep_code = RepCode::new(i as u8, j as u8);
+                println!("Hello world");
+            }
+        }
     }
 }
