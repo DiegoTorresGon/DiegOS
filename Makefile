@@ -7,7 +7,7 @@ CC=nasm
 
 KERNEL_OBJ_DIR := src/os_code/target/i686-unknown-bare_metal/release/deps
 
-KERNEL_INCLUDES := $(shell ls -R src/os_code | egrep ^'rlibc[^.]*\.o$^' | egrep -v ^'*volatile*|*compiler_builtins*|*panic*|*^libc*|*alloc*|*cfg*|*core*|*os_code*|*\.[^o]^')
+KERNEL_INCLUDES := $(shell ls -R src/os_code | egrep ^'rlibc[^.]*\.o$^' | egrep -v ^'*.[^o]^')
 
 KERNEL_MAIN := $(KERNEL_OBJ_DIR)/$(shell ls -R src/os_code | egrep ^'os_code[^.]*\.o$^' | egrep -v ^'*\.[^o]^')
 KERNEL_FULL_INCLUDES := $(addprefix $(KERNEL_OBJ_DIR)/, $(KERNEL_INCLUDES))

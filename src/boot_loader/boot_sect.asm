@@ -33,10 +33,15 @@ load_kernel:
 	mov bx, KERNEL_OFFSET 	; This is were we actually tell the routine
 							; to load kernel code with this offset. 
 	mov dh, 54				; loading 54 sectors to leave space for the future
-							; when kernel is bigger. THIS IS THE MAXIMUN TESTTED NUMBER
+							; when kernel is bigger. THIS IS THE MAXIMUN 
+							; TESTTED NUMBER
 							; BOCHS BIOS CAN LOAD.
 	mov dl, [BOOT_DRIVE]
 	call disk_load								
+
+	;add bx, 54 * 512
+	;mov dh, 0
+	;call disk_load
 
 	ret
 
