@@ -2,13 +2,16 @@
 #![no_main]
 //#![feature(rustc_private)]
 #![feature(panic_info_message)]
+#![feature(naked_functions)]
+#![feature(abi_x86_interrupt)]
 
 //extern crate compiler_builtins;
 
 use core::panic::PanicInfo;
-use core::fmt::Write;
+use core::arch::asm;
 
 pub mod drivers;
+pub mod interrupts;
 
 use drivers::screen::*;
 use drivers::screen;
@@ -22,9 +25,18 @@ pub extern "C" fn _start() -> ! {
 
     print!("\t\tDiegOS\n\n");
     out_handle().rep_code = RepCode::new(FB_BLACK, FB_LIGHT_GREY);
-    print!("Booting proces has started.\n\
+    print!("Booting process has started.\n\
             We are initializing some stuff.\n\
             Hold tightly...");
+
+    interrupts::init();
+
+    unsafe {
+        asm!{
+            "mov dx, 0
+             div dx"
+        }
+    }
 
     panic!("Awwwwgh!!! Horror panic is coming!!!");
 

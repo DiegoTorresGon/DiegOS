@@ -31,7 +31,7 @@ $(BUILD)/kernel_entry.o: $(BOOT)/kernel_entry.asm
 
 os.img: $(BUILD)/boot_sect.bin $(BUILD)/kernel.bin
 	cat $(BUILD)/boot_sect.bin $(BUILD)/kernel.bin > $@
-	echo "The resulting image size is: $(shell stat -L -c \%s $@)"
+	@echo "The resulting image size is: $(shell stat -L -c \%s $@)"
 
 $(BUILD)/kernel.bin: $(BUILD)/kernel_entry.o kernel
 	@echo "Start linking:"
