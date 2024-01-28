@@ -5,11 +5,7 @@ use x86::dtables::DescriptorTablePointer;
 use x86::Ring;
 use core::mem::size_of;
 
-use crate::interrupts::ExceptionStackFrame;
-
-//General interrupt handler which may 
-//handle an error code placed on the stack.
-pub type IntHandler = extern "x86-interrupt" fn(_: ExceptionStackFrame) -> !;
+use crate::interrupts::Handler;
 
 //Interrupt Descriptor Table
 pub struct Idt([Igd; 16]);
@@ -43,20 +39,23 @@ impl Idt {
         unsafe { lidt(&descriptor_ptr) };
     }
 
-    pub fn set_handler(&mut self, index : u8, handler : IntHandler) 
+    pub fn set_handler
+    (&mut self, index : u8, handler : impl Handler) 
     -> &mut TypeAttributes 
     {
-        self.0[index as usize] = Igd::new(segmentation::cs(), handler);
+        let casted_handler = handler.as_u32();
+        self.0[index as usize] = Igd::new(segmentation::cs(), casted_handler);
         &mut self.0[index as usize].type_attr
     }
 }
 
 impl Igd {
-    pub fn new(gdt_selector : SegmentSelector, handler: IntHandler) -> Igd {
+    pub fn new(gdt_selector : SegmentSelector, handler: u32) -> Igd {
         let handler_ptr : u32 = handler as u32;
         let mut type_attr = TypeAttributes::default();
         type_attr.set_present();
         type_attr.disable_interrupts(true);
+        type_attr.set_privilege_level(Ring::Ring0 as u8);
 
         Igd {
             offset_low : handler_ptr as u16,

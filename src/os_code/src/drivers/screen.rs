@@ -4,7 +4,7 @@ use core::fmt;
 use volatile::Volatile;
 use spin::{Mutex, MutexGuard};
 
-//Available collors to use with VGA-FrameBugger:
+//Available collors to use with VGA-FrameBuffer:
 //  Black   -   0,  Red     -   4,  Dark Grey   -   8,  Light Red       -   12,
 //  Blue    -   1,  Magenta -   5,  Light Blue  -   9,  Ligth Magenta   -   13,
 //  Green   -   2,  Brown   -   6,  Light Green -  10,  Light Brown     -   14,
@@ -259,7 +259,6 @@ impl WriteOut {
         self.frame_buff.move_cursor(
             ScreenPointer::from_xy(0, self.frame_buff.cursor.row() + 1).0 as u16);
     }
-
 }
 
 impl fmt::Write for WriteOut {

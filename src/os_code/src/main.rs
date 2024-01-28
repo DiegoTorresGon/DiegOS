@@ -4,6 +4,7 @@
 #![feature(panic_info_message)]
 #![feature(naked_functions)]
 #![feature(abi_x86_interrupt)]
+#![feature(asm_const)]
 
 //extern crate compiler_builtins;
 
@@ -31,7 +32,10 @@ pub extern "C" fn _start() -> ! {
 
     interrupts::init();
 
+
     unsafe {
+        x86::int!(0x3);
+
         asm!{
             "mov dx, 0
              div dx"
@@ -39,8 +43,6 @@ pub extern "C" fn _start() -> ! {
     }
 
     panic!("Awwwwgh!!! Horror panic is coming!!!");
-
-    loop {}
 }
 
 #[panic_handler]
@@ -58,7 +60,7 @@ fn panic(info: &PanicInfo) -> ! {
     loop{}
 }
 
-fn hello_dance() {
+fn _hello_dance() {
     loop {
         for i in 0..15 {
             for j in 0..15 {
