@@ -32,15 +32,9 @@ pub extern "C" fn _start() -> ! {
 
     interrupts::init();
 
-
     unsafe {
         x86::int!(0x3);
-
-        asm!{
-            "mov dx, 0
-             div dx"
-        }
-    }
+    };
 
     panic!("Awwwwgh!!! Horror panic is coming!!!");
 }
@@ -50,8 +44,11 @@ fn panic(info: &PanicInfo) -> ! {
     out_handle().rep_code = RepCode::new(FB_RED, FB_WHITE);
     match info.message() {
         Some(msg) => {
-            println!("\n\nPanic at:\t{}", info.location().unwrap());
-            println!("\"{}\"", msg);
+            print!("\n\nPanic at:\t");
+            if info.location().is_some() {
+                print!("{}", info.location().unwrap());
+            }
+            println!("\n\"{}\"", msg);
         },
         None => {
             println!("\n\n{:?}", info);
