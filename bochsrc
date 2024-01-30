@@ -5,3 +5,4 @@ boot: a
 log: bochsout.txt
 romimage: file=$BXSHARE/BIOS-bochs-latest
 memory: guest=128, host=512
+cpuid: level=6, apic=legacy

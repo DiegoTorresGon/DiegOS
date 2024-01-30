@@ -9,7 +9,6 @@
 //extern crate compiler_builtins;
 
 use core::panic::PanicInfo;
-use core::arch::asm;
 
 pub mod drivers;
 pub mod interrupts;
@@ -21,27 +20,32 @@ use drivers::screen;
 pub extern "C" fn _start() -> ! {
 
     screen::init_out(RepCode::new(FB_BLACK, FB_WHITE));
+    interrupts::init();
 
-    out_handle().clear_screen();
+    OutHandler::clear_screen();
 
     print!("\t\tDiegOS\n\n");
-    out_handle().rep_code = RepCode::new(FB_BLACK, FB_LIGHT_GREY);
+    OutHandler::set_rep_code(RepCode::new(FB_BLACK, FB_LIGHT_GREY));
     print!("Booting process has started.\n\
             We are initializing some stuff.\n\
-            Hold tightly...");
+            Hold tightly...\n");
 
-    interrupts::init();
 
     unsafe {
         x86::int!(0x3);
     };
 
+    /*
+    loop { 
+        print!("-"); 
+    }
+    */
     panic!("Awwwwgh!!! Horror panic is coming!!!");
 }
 
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
-    out_handle().rep_code = RepCode::new(FB_RED, FB_WHITE);
+    OutHandler::set_rep_code(RepCode::new(FB_RED, FB_WHITE));
     match info.message() {
         Some(msg) => {
             print!("\n\nPanic at:\t");
@@ -61,7 +65,7 @@ fn _hello_dance() {
     loop {
         for i in 0..15 {
             for j in 0..15 {
-                out_handle().rep_code = RepCode::new(i as u8, j as u8);
+                OutHandler::set_rep_code(RepCode::new(i as u8, j as u8));
                 println!("Hello world");
             }
         }

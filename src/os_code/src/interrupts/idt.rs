@@ -7,8 +7,10 @@ use core::mem::size_of;
 
 use crate::interrupts::Handler;
 
+const IDT_SIZE : usize = 48; // 32 are CPU mapped and 16 are PIC mapped
+
 //Interrupt Descriptor Table
-pub struct Idt([Igd; 16]);
+pub struct Idt([Igd; IDT_SIZE]); 
 
 //Interrupt Gate Descriptor
 #[repr(C, packed)]
@@ -27,7 +29,7 @@ pub struct TypeAttributes(u8);
 
 impl Idt {
     pub fn new() -> Idt {
-        Idt([Igd::missing(); 16])
+        Idt([Igd::missing(); IDT_SIZE])
     }
 
     pub fn load(&self) {

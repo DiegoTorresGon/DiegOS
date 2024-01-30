@@ -1,8 +1,12 @@
 use lazy_static::lazy_static;
+use core::arch::asm;
 
 mod idt;
 mod handlers;
+mod pic;
 
+pub const PICM_OFFSET : u8 = 0x20;
+pub const PICS_OFFSET : u8 = 0x28;
 
 //Allows us to easily pass pointer values to 
 //low level IDT entries.
@@ -22,8 +26,10 @@ lazy_static! {
         let mut idt = idt::Idt::new();
 
         idt.set_handler(0x0, handlers::divide_by_zero as IntHandlerNoRet);
-        //idt.set_handler(0x3, handlers::breakpoint as IntHandlerRet);
+        idt.set_handler(0x3, handlers::breakpoint as IntHandlerRet);
         idt.set_handler(0x8, handlers::double_fault as IntHandlerNoRetErr);
+        idt.set_handler(pic::HardwareInterrupts::Timer.as_u8(), 
+                        handlers::sys_timer as IntHandlerRet);
 
         idt
     };
@@ -41,6 +47,36 @@ struct ExceptionStackFrame {
 
 pub fn init() {
     IDT.load();
+    let pic_handle = pic::MasterSlavePic::new(PICM_OFFSET, PICS_OFFSET);
+    //as pin 02 in master is masked, everything in slave pic is masked
+    pic_handle.master.set_masks(0b11111110);
+    pic_handle.slave.set_masks(0b10001111);
+    pic_handle.init_pics();
+    enable_hardware_interrupts();
+}
+
+pub fn enable_hardware_interrupts() {
+    unsafe {
+        asm!("sti");
+    }
+}
+ 
+pub fn disable_interrupts() {
+    unsafe {
+        asm!("cli");
+    }
+}
+
+pub fn without_interrupts<F, R>(f : F) -> R
+where 
+    F : FnOnce() -> R,
+{
+    unsafe {
+        asm!("cli");
+        let value = f();
+        asm!("sti");
+        value
+    }
 }
 
 impl Handler for IntHandlerNoRet {
