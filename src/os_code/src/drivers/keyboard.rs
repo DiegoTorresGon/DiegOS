@@ -4,8 +4,8 @@ use pc_keyboard::{layouts, DecodedKey, HandleControl, Keyboard, ScancodeSet1};
 use lazy_static::lazy_static;
 
 const KEYB_DATA_PORT : u8 = 0x60;
-const KEYB_STATUS_REG : u8 = 0x64; //This is for reading.
-const KEYB_COMMAND_REG : u8 = 0x64; //this is for writing.
+const _KEYB_STATUS_REG : u8 = 0x64; //This is for reading.
+const _KEYB_COMMAND_REG : u8 = 0x64; //this is for writing.
 
 lazy_static! {
     static ref KEYBOARD: Mutex<Keyboard<layouts::Us104Key, ScancodeSet1>> =

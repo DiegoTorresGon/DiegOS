@@ -42,7 +42,7 @@ pub extern "x86-interrupt" fn sys_timer(_stack_frame : ExceptionStackFrame) {
     pic::send_eoi(pic::HardwareInterrupts::Timer.as_u8());
 }
 
-pub extern "x86-interrupt" fn keyboard(stack_frame : ExceptionStackFrame) {
+pub extern "x86-interrupt" fn keyboard(_stack_frame : ExceptionStackFrame) {
     match keyboard_read() {
         Ok(decoded_key) => match decoded_key {
             DecodedKey::Unicode(character) => print!("{character}"),
