@@ -2,13 +2,16 @@
 #![no_main]
 //#![feature(rustc_private)]
 #![feature(panic_info_message)]
+#![feature(naked_functions)]
+#![feature(abi_x86_interrupt)]
+#![feature(asm_const)]
 
 //extern crate compiler_builtins;
 
 use core::panic::PanicInfo;
-use core::fmt::Write;
 
 pub mod drivers;
+pub mod interrupts;
 
 use drivers::screen::*;
 use drivers::screen;
@@ -17,40 +20,54 @@ use drivers::screen;
 pub extern "C" fn _start() -> ! {
 
     screen::init_out(RepCode::new(FB_BLACK, FB_WHITE));
+    interrupts::init();
 
-    out_handle().clear_screen();
+    OutHandler::clear_screen();
 
     print!("\t\tDiegOS\n\n");
-    out_handle().rep_code = RepCode::new(FB_BLACK, FB_LIGHT_GREY);
-    print!("Booting proces has started.\n\
+    OutHandler::set_rep_code(RepCode::new(FB_BLACK, FB_LIGHT_GREY));
+    print!("Booting process has started.\n\
             We are initializing some stuff.\n\
-            Hold tightly...");
+            Hold tightly...\n");
 
-    panic!("Awwwwgh!!! Horror panic is coming!!!");
 
-    loop {}
+    unsafe {
+        x86::int!(0x3);
+    };
+
+    /*
+    loop { 
+        print!("-"); 
+    }
+    */
+    //panic!("Awwwwgh!!! Horror panic is coming!!!");
+    interrupts::halt();
 }
 
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
-    out_handle().rep_code = RepCode::new(FB_RED, FB_WHITE);
+    OutHandler::set_rep_code(RepCode::new(FB_RED, FB_WHITE));
     match info.message() {
         Some(msg) => {
-            println!("\n\nPanic at:\t{}", info.location().unwrap());
-            println!("\"{}\"", msg);
+            print!("\n\nPanic at:\t");
+            if info.location().is_some() {
+                print!("{}", info.location().unwrap());
+            }
+            println!("\n\"{}\"", msg);
         },
         None => {
             println!("\n\n{:?}", info);
         }
     }
-    loop{}
+    
+    interrupts::halt();
 }
 
-fn hello_dance() {
+fn _hello_dance() {
     loop {
         for i in 0..15 {
             for j in 0..15 {
-                out_handle().rep_code = RepCode::new(i as u8, j as u8);
+                OutHandler::set_rep_code(RepCode::new(i as u8, j as u8));
                 println!("Hello world");
             }
         }

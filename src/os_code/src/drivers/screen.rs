@@ -1,10 +1,14 @@
 use core::arch::asm;
 use core::default::Default;
 use core::fmt;
+use core::ops::{DerefMut, Deref};
 use volatile::Volatile;
 use spin::{Mutex, MutexGuard};
 
-//Available collors to use with VGA-FrameBugger:
+use crate::interrupts;
+use crate::interrupts::{enable_hardware_interrupts, disable_interrupts};
+
+//Available collors to use with VGA-FrameBuffer:
 //  Black   -   0,  Red     -   4,  Dark Grey   -   8,  Light Red       -   12,
 //  Blue    -   1,  Magenta -   5,  Light Blue  -   9,  Ligth Magenta   -   13,
 //  Green   -   2,  Brown   -   6,  Light Green -  10,  Light Brown     -   14,
@@ -66,6 +70,65 @@ pub struct ScreenPointer(usize);
 #[repr(transparent)]
 pub struct RepCode(u8);
 
+pub struct OutHandler {
+    out_guard : MutexGuard<'static, WriteOut>,    
+}
+
+//Interrupts have to be properly enable before use of this 
+//methods.
+impl OutHandler {
+    pub fn get() -> Self {
+        disable_interrupts();
+        let handle = Self::handle();
+        OutHandler { out_guard : handle }
+    }
+    
+    fn handle() -> MutexGuard<'static, WriteOut> {
+        unsafe { SCREEN_OUT.as_mut().unwrap().lock() }
+    }
+    
+    pub fn clear_screen() {
+        interrupts::without_interrupts(|| {
+            let mut handle = Self::handle(); 
+            handle.clear_screen()
+        });
+    }
+
+    pub fn set_rep_code(rep_code : RepCode) {
+        interrupts::without_interrupts(|| {
+            let mut handle = Self::handle(); 
+            handle.rep_code = rep_code;
+        });
+    }
+    
+    pub fn get_rep_code() -> RepCode {
+        interrupts::without_interrupts(|| -> RepCode {
+            let handle = Self::handle(); 
+            handle.rep_code
+        })
+    }
+}
+
+impl Drop for OutHandler {
+    fn drop(&mut self) {
+        enable_hardware_interrupts();
+    }
+}
+
+impl Deref for OutHandler {
+    type Target = MutexGuard<'static, WriteOut>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.out_guard
+    }
+}
+
+impl DerefMut for OutHandler {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.out_guard
+    }
+}
+
 pub fn init_out(rep : RepCode) {
     unsafe { SCREEN_OUT = Some(
         Mutex::new(
@@ -78,15 +141,12 @@ pub fn init_out(rep : RepCode) {
     }
 }
 
-pub fn out_handle() -> MutexGuard<'static, WriteOut> {
-    let handle = unsafe { SCREEN_OUT.as_mut().unwrap().lock() };
-    handle
-}
-
 pub fn _print(args : fmt::Arguments) {
     use fmt::Write;
     unsafe {
-        SCREEN_OUT.as_mut().unwrap().lock().write_fmt(args).unwrap();
+        interrupts::without_interrupts(|| {
+            SCREEN_OUT.as_mut().unwrap().lock().write_fmt(args).unwrap();
+        });
     }
 }
 #[macro_export]
@@ -259,7 +319,6 @@ impl WriteOut {
         self.frame_buff.move_cursor(
             ScreenPointer::from_xy(0, self.frame_buff.cursor.row() + 1).0 as u16);
     }
-
 }
 
 impl fmt::Write for WriteOut {
