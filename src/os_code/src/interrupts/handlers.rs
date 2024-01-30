@@ -1,7 +1,10 @@
-use crate::{println/*, print*/};
+use crate::{println, print};
 use crate::screen;
+use crate::drivers::keyboard::keyboard_read;
 use crate::interrupts::ExceptionStackFrame;
 use crate::interrupts::pic;
+
+use pc_keyboard::DecodedKey;
 
 pub extern "x86-interrupt" fn divide_by_zero(
 stack_frame : ExceptionStackFrame) -> ! {
@@ -37,5 +40,17 @@ pub extern "x86-interrupt" fn sys_timer(_stack_frame : ExceptionStackFrame) {
     //Would like to implement time keeping service.
 
     pic::send_eoi(pic::HardwareInterrupts::Timer.as_u8());
+}
+
+pub extern "x86-interrupt" fn keyboard(stack_frame : ExceptionStackFrame) {
+    match keyboard_read() {
+        Ok(decoded_key) => match decoded_key {
+            DecodedKey::Unicode(character) => print!("{character}"),
+            DecodedKey::RawKey(key) => print!("{:?}", key),
+        },
+        _ => (),
+    };
+
+    pic::send_eoi(pic::HardwareInterrupts::Keyboard.as_u8());
 }
 

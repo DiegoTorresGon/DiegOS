@@ -40,7 +40,8 @@ pub extern "C" fn _start() -> ! {
         print!("-"); 
     }
     */
-    panic!("Awwwwgh!!! Horror panic is coming!!!");
+    //panic!("Awwwwgh!!! Horror panic is coming!!!");
+    interrupts::halt();
 }
 
 #[panic_handler]
@@ -58,7 +59,8 @@ fn panic(info: &PanicInfo) -> ! {
             println!("\n\n{:?}", info);
         }
     }
-    loop{}
+    
+    interrupts::halt();
 }
 
 fn _hello_dance() {

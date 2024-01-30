@@ -18,6 +18,7 @@ const PICS_DATA : u16 = PICS + 1;
 #[repr(u8)]
 pub enum HardwareInterrupts {
     Timer = interrupts::PICM_OFFSET,
+    Keyboard,
 }
 
 impl HardwareInterrupts {

@@ -30,7 +30,8 @@ lazy_static! {
         idt.set_handler(0x8, handlers::double_fault as IntHandlerNoRetErr);
         idt.set_handler(pic::HardwareInterrupts::Timer.as_u8(), 
                         handlers::sys_timer as IntHandlerRet);
-
+        idt.set_handler(pic::HardwareInterrupts::Keyboard.as_u8(), 
+                        handlers::keyboard as IntHandlerRet);
         idt
     };
 }
@@ -49,7 +50,7 @@ pub fn init() {
     IDT.load();
     let pic_handle = pic::MasterSlavePic::new(PICM_OFFSET, PICS_OFFSET);
     //as pin 02 in master is masked, everything in slave pic is masked
-    pic_handle.master.set_masks(0b11111110);
+    pic_handle.master.set_masks(0b11111100);
     pic_handle.slave.set_masks(0b10001111);
     pic_handle.init_pics();
     enable_hardware_interrupts();
@@ -76,6 +77,14 @@ where
         let value = f();
         asm!("sti");
         value
+    }
+}
+
+pub fn halt() -> ! {
+    loop {
+        unsafe {
+            asm!("hlt");
+        }
     }
 }
 
