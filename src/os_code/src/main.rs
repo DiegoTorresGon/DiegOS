@@ -12,9 +12,11 @@ use core::panic::PanicInfo;
 
 pub mod drivers;
 pub mod interrupts;
+pub mod mem;
 
 use drivers::screen::*;
 use drivers::screen;
+use mem::paging;
 
 #[no_mangle]
 pub extern "C" fn _start() -> ! {
@@ -30,16 +32,12 @@ pub extern "C" fn _start() -> ! {
             We are initializing some stuff.\n\
             Hold tightly...\n");
 
-
     unsafe {
         x86::int!(0x3);
     };
 
-    /*
-    loop { 
-        print!("-"); 
-    }
-    */
+    paging::init();
+
     //panic!("Awwwwgh!!! Horror panic is coming!!!");
     interrupts::halt();
 }
