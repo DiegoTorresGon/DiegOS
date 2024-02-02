@@ -20,7 +20,6 @@ LINKER_SCRIPT := src/link.ls
 all: os.img
 
 kernel: $(wildcard $(SRC_DIR)/*.rs)
-	@echo $(SRC_FILES)
 	cd $(KERNEL) && cargo build --release
 
 $(BUILD)/boot_sect.bin: $(BOOT)/boot_sect.asm
