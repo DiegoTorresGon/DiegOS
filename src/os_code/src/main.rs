@@ -30,11 +30,13 @@ pub extern "C" fn _start() -> ! {
     OutHandler::set_rep_code(RepCode::new(FB_BLACK, FB_LIGHT_GREY));
     print!("Booting process has started.\n\
             We are initializing some stuff.\n\
-            Hold tightly...\n");
+            Hold tightly...\n\n");
 
+    /*
     unsafe {
         x86::int!(0x3);
     };
+    */
 
     paging::init();
 

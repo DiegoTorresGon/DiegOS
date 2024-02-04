@@ -5,7 +5,7 @@ SRC_DIR=src/os_code/src
 
 CC=nasm
 
-KERNEL_OBJ_DIR := src/os_code/target/i686-unknown-bare_metal/release/deps
+KERNEL_OBJ_DIR := src/os_code/target/i386-pc-none-gnu/release/deps
 
 KERNEL_INCLUDES := $(shell ls -R src/os_code | egrep ^'rlibc[^.]*\.o$^' | egrep -v ^'*.[^o]^')
 
