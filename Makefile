@@ -30,7 +30,6 @@ kernel: $(wildcard $(SRC_DIR)/*.rs)
 	cd $(KERNEL) && cargo build --release
 
 $(BUILD)/boot_sect.bin: $(BOOT_INCLUDES)
-	@echo $(BOOT_INCLUDES)
 	$(CC) $(BOOT)/boot_sect.asm -f bin -I$(BOOT) -o $@
 
 $(BUILD)/kernel_entry.o: $(BOOT)/kernel_entry.asm
@@ -56,5 +55,5 @@ clean-hdd:
 	rm -rf *.img
 	rm -rf *.img.lock
 
-dev: os.img
+dev: all 
 	bochs -q

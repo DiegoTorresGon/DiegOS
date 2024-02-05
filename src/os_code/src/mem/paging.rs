@@ -1,9 +1,11 @@
 use core::convert::From;
 use core::ops::Deref;
+use core::arch::asm;
 
 use crate::println;
 
 //For referece about this implementation of paging: https://wiki.osdev.org/Paging#32-bit_Paging_.28Protected_Mode.29
+//Contol registers reference: https://wiki.osdev.org/CPU_Registers_x86#Control_Registers
 
 // We want to set up 32-bit paging with 4KByte pages.
 // According to intel IA-32 architecture developer manual, we must set up like this:
@@ -12,9 +14,11 @@ use crate::println;
 // CR4.PAE = 0 uses 32-bit paging mode,
 // IA32_EFER.LME = 0. This is ensured by the processor when CR0.PG = 1 && CR4.PAE = 0.
 // CR4.PSE = 0 to use 4kiB pages.
-//
-const NUM_PTS : usize = 256;
 
+const NUM_PTS : usize = 5;
+
+//#[no_mangle]
+//#[link_section = ".page_directory"]
 static mut PDT : PageDirectoryTable =  
     PageDirectoryTable {
         pde : [PDEMemRep(0 as u32); 1024]
@@ -29,7 +33,6 @@ static mut PTS : [PageTable; NUM_PTS] =
 
 
 #[repr(align(4096))]
-#[derive(Clone, Copy)]
 pub struct PageDirectoryTable {
     pub pde : [PDEMemRep ; 1024]
 }
@@ -246,7 +249,38 @@ pub fn init() {
         map_pages(start_addr, final_addr, 0x00100000);
 
         println!("Finished mapping...");
+        enable_paging();
     }
+}
+
+//#[no_mangle]
+unsafe fn enable_paging() {
+    //For reference about control registers manipulation
+    //see top of the file.
+    //x86::int!(0x3);
+    let pdt_ref = core::ptr::addr_of!(PDT) as usize;
+    println!("{:x}", pdt_ref);
+
+    asm!(
+        "mov eax, cr3",
+        "and eax, 0x00000FFF",
+        "or eax, edx",
+        "or eax, 00000000000000000000000000001000b",
+        "mov cr3, eax",
+
+        "mov eax, cr4",
+        "or eax, 00000000000000000000000010000000b",
+        "and eax, 11111111111111111111111111001111b",
+        "mov cr4, eax",
+
+        "mov eax, cr0",
+        "or eax, 10000000000000000000000010000001b",
+        "mov cr0, eax",
+
+        in("edx") pdt_ref
+    );
+
+    println!("Page setup succesfull!");
 }
 
 unsafe fn map_table(start : VirtAddress, phys_start : u32) {
@@ -272,8 +306,8 @@ unsafe fn map_pages(start : VirtAddress, end : VirtAddress, phys_start : u32) {
             accessed : false,
             pcd : false,
             pwt : true,
-            u_s : false,
-            r_w : false,
+            u_s : true,
+            r_w : true,
             p : true,
         }.into();
 
@@ -282,6 +316,7 @@ unsafe fn map_pages(start : VirtAddress, end : VirtAddress, phys_start : u32) {
         current_table = current_virtual.dir_offset() - start.dir_offset();
     }
 
+    current_virtual.0 -= 4096;
     let tables_to_load = current_virtual.dir_offset() - start.dir_offset() + 1;
     for i in 0..(tables_to_load) {
         let address = VirtAddress(start.0 + 4 * 1024 * 1024 * i as u32);
@@ -289,6 +324,8 @@ unsafe fn map_pages(start : VirtAddress, end : VirtAddress, phys_start : u32) {
         println!("Mapping table at:\n\tdir: {}, frame_index: {}, offset : {}", 
             address.dir_offset(),
             address.frame_index(), address.offset());
+
+        //let mut pd_handle = &mut PDT;
 
         PDT.pde[address.dir_offset()] = PageDirectoryEntry {
             address : (&PTS[LOADED_PAGE_TABLES + i] as *const _) as u32,
@@ -298,7 +335,7 @@ unsafe fn map_pages(start : VirtAddress, end : VirtAddress, phys_start : u32) {
             accessed : false,
             cannot_cache : false,
             pwt : true,
-            u_s : false,
+            u_s : true,
             r_w : true,
             p : true,
         }.into();
