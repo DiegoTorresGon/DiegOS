@@ -31,10 +31,10 @@ load_kernel:
 
 	mov bx, KERNEL_OFFSET 	; This is were we actually tell the routine
 							; to load kernel code with this offset. 
-	mov dh, 127				; loading 127 * 2 sectors to leave space for 
+	mov dh, 127				; loading 127 sectors to leave space for 
 							; the future
 							; when kernel is bigger.  
-							; This can be increased by repeating load routine.
+							; This as far as I can take it for now. 
 
 	mov dl, [BOOT_DRIVE]
 	call disk_load								

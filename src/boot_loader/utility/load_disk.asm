@@ -1,5 +1,3 @@
-
-
 ; load dh sectors, starting from sector 02, to es:bx from drive dl
 ; cylinder 0, head 0
 disk_load:
@@ -27,9 +25,10 @@ disk_load:
 
 	; LBA = 128, cylinder = 0, head = 6 
 
-	; mov dh, 11
+	
+	; mov dh, 41 
 	; mov bx, KERNEL_OFFSET
-	; add bx, 128 * 512
+	; add bx, 128 * 512 ; this would be invalid because bx overflows. I need a different way of loading.
 	;  
 	; mov ah, 0x02  	; BIOS specification for reading a sector function
 	; mov al, dh 		; We want to read dh sectors
@@ -38,8 +37,8 @@ disk_load:
 	; mov cl, 0x03		; Start reading from second sector (after boot sector)
 	; 
 	; int 0x13 			; BIOS interrupt for loading disk
-	; 
-	; pop dx
+	
+	;  pop dx
 	; jc disk_error_fail
 	; cmp dh, al
 	; jne disk_error_sector
