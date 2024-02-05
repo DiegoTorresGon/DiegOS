@@ -1,3 +1,5 @@
 bochsout.txt
 os.img
+disk.img.lock
+disk.img
 build/*

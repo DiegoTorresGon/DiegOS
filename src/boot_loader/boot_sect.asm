@@ -12,9 +12,6 @@ mov sp, bp 					; This top pointer starts at the same location as botton (the st
 
 call load_kernel			; Routine to load drive sectors corresponding to kernel.
 
-mov dx, BPOINT
-call print_hex
-
 call switch_to_pm			; Routine to switch CPU into proper 32-bit protected mode.
 
 jmp $
@@ -28,15 +25,17 @@ jmp $
 [bits 16]
 
 load_kernel:
+
 	mov bx, MSG_LOAD_KERNEL
 	call println
 
 	mov bx, KERNEL_OFFSET 	; This is were we actually tell the routine
 							; to load kernel code with this offset. 
-	mov dh, 54				; loading 54 sectors to leave space for the future
-							; when kernel is bigger. THIS IS THE MAXIMUN 
-							; TESTTED NUMBER
-							; BOCHS BIOS CAN LOAD.
+	mov dh, 127				; loading 127 * 2 sectors to leave space for 
+							; the future
+							; when kernel is bigger.  
+							; This can be increased by repeating load routine.
+
 	mov dl, [BOOT_DRIVE]
 	call disk_load								
 
@@ -44,22 +43,6 @@ load_kernel:
 
 [bits 32]
 BEGIN_PM:
- 	mov ebx, MSG_PM
- 	call println32
-
-	;mov bx, KERNEL_OFFSET 	; This is were we actually tell the routine
-							; to load kernel code with this offset. 
-	;mov dh, 54				; loading 54 sectors to leave space for the future
-							; when kernel is bigger. THIS IS THE MAXIMUN 
-							; TESTTED NUMBER
-							; BOCHS BIOS CAN LOAD.
-	;mov dl, [BOOT_DRIVE]
-	;call disk_load								
-
-	
-	mov dx, BPOINT
-	call print32_hex
-BPOINT:
 	call KERNEL_OFFSET 
 
  	jmp $
