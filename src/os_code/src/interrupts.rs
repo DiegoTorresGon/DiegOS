@@ -1,7 +1,7 @@
 use lazy_static::lazy_static;
 use core::arch::asm;
 
-mod idt;
+pub mod idt;
 mod handlers;
 mod pic;
 
@@ -25,12 +25,15 @@ lazy_static! {
     static ref IDT : idt::Idt = {
         let mut idt = idt::Idt::new();
 
-        idt.set_handler(0x0, handlers::divide_by_zero as IntHandlerNoRet);
+        idt.set_handler(0x0, handlers::divide_by_zero as IntHandlerNoRet)
+            .disable_interrupts(true);
         idt.set_handler(0x3, handlers::breakpoint as IntHandlerRet);
-        idt.set_handler(0x8, handlers::double_fault as IntHandlerNoRetErr);
+        idt.set_handler(0x6, handlers::invalid_opcode as IntHandlerNoRet);
+        idt.set_handler(0x8, handlers::double_fault as IntHandlerNoRetErr)
+            .disable_interrupts(true);
         idt.set_handler(0x0d, handlers::gpf as IntHandlerNoRetErr);
         idt.set_handler(0x0e, handlers::page_fault as IntHandlerNoRetErr)
-            .disable_interrupts(true);
+            .disable_interrupts(false);
         idt.set_handler(pic::HardwareInterrupts::Timer.as_u8(), 
                         handlers::sys_timer as IntHandlerRet)
             .disable_interrupts(true);
@@ -42,7 +45,7 @@ lazy_static! {
 }
 
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Clone, Copy, Debug)]
 struct ExceptionStackFrame {
     instruction_ptr : u32,
     code_segment : u32,

@@ -1,7 +1,9 @@
 use core::convert::From;
 use core::ops::Deref;
 use core::arch::asm;
+use core::ptr::addr_of;
 
+use crate::interrupts;
 use crate::println;
 
 //For referece about this implementation of paging: https://wiki.osdev.org/Paging#32-bit_Paging_.28Protected_Mode.29
@@ -15,10 +17,10 @@ use crate::println;
 // IA32_EFER.LME = 0. This is ensured by the processor when CR0.PG = 1 && CR4.PAE = 0.
 // CR4.PSE = 0 to use 4kiB pages.
 
-const NUM_PTS : usize = 5;
+const NUM_PTS : usize = 500;
 
 //#[no_mangle]
-//#[link_section = ".page_directory"]
+#[link_section = ".page_directory"]
 static mut PDT : PageDirectoryTable =  
     PageDirectoryTable {
         pde : [PDEMemRep(0 as u32); 1024]
@@ -97,6 +99,10 @@ impl VirtAddress {
     pub fn frame_index(&self) -> usize {
         let res = ((self.0 & 0b0000000000_1111111111_000000000000) >> 12) 
             as usize;
+        println!("frame index: {}", res);
+        unsafe {
+            x86::int!(0x3);
+        }
         res
     }
 
@@ -148,7 +154,7 @@ impl Deref for PDEMemRep {
 impl From<PageDirectoryEntry> for PDEMemRep {
     fn from(val : PageDirectoryEntry) -> Self {
         PDEMemRep(
-            (val.address << 12) | ((val.avl as u32) << 8) |
+            (val.address) | ((val.avl as u32) << 8) |
             ((val.ps as u32) << 7) | ((val.avl2 as u32) << 6) |
             ((val.accessed as u32) << 5) | ((val.cannot_cache as u32) << 4) |
             ((val.pwt as u32) << 3) | ((val.u_s as u32) << 2) |
@@ -160,7 +166,7 @@ impl From<PageDirectoryEntry> for PDEMemRep {
 impl From<PDEMemRep> for PageDirectoryEntry {
     fn from(mem_rep : PDEMemRep) -> Self {
         PageDirectoryEntry {
-            address : *mem_rep >> 12,
+            address : *mem_rep & 0b111111111111000000000000,
             avl : ((*mem_rep & 0x000000ff0000) >> 8) as u8,
             ps : ((*mem_rep & 0b000000000000000010000000) >> 7) == 1,
             avl2 : ((*mem_rep & 0b000000000000000001000000) >> 6) == 1,
@@ -203,7 +209,7 @@ impl Deref for PageFrameMemRep {
 impl From<PageFrame> for PageFrameMemRep {
     fn from(val : PageFrame) -> Self {
         PageFrameMemRep(
-            (val.address << 12) | ((val.avl as u32) << 9) |
+            (val.address) | ((val.avl as u32) << 9) |
             ((val.g as u32) << 8) | ((val.pat as u32) << 7) | 
             ((val.dirty as u32) << 6) | ((val.accessed as u32) << 5) | 
             ((val.pcd as u32) << 4) | ((val.pwt as u32) << 3) | 
@@ -216,8 +222,9 @@ impl From<PageFrame> for PageFrameMemRep {
 
 impl From<PageFrameMemRep> for PageFrame {
     fn from(mem_rep : PageFrameMemRep) -> Self {
+        println!("{:x}", *mem_rep);
         PageFrame {
-            address : *mem_rep >> 12,
+            address : *mem_rep & 0b111111111111000000000000,
             avl : ((*mem_rep & 0b000000000000111000000000) >> 9) as u8,
             g : ((*mem_rep & 0b000000000000000100000000) >> 8) == 1,
             pat : ((*mem_rep & 0b000000000000000010000000) >> 7) == 1,
@@ -257,30 +264,43 @@ pub fn init() {
 unsafe fn enable_paging() {
     //For reference about control registers manipulation
     //see top of the file.
-    //x86::int!(0x3);
-    let pdt_ref = core::ptr::addr_of!(PDT) as usize;
+    let mut pdt_ref = core::ptr::addr_of!(PDT) as usize;
     println!("{:x}", pdt_ref);
+    
+    /*
+    let mut idt : x86::dtables::DescriptorTablePointer<interrupts::idt::Idt> = Default::default();
+    x86::dtables::sidt(&mut idt);
+    println!("{:x}", core::ptr::addr_of!(idt) as usize);
+    println!("\n{:x?}", *(idt.base as *const interrupts::idt::Igd));
+    */
 
-    asm!(
-        "mov eax, cr3",
-        "and eax, 0x00000FFF",
-        "or eax, edx",
-        "or eax, 00000000000000000000000000001000b",
-        "mov cr3, eax",
+    //pdt_ref = pdt_ref << 8;
 
-        "mov eax, cr4",
-        "or eax, 00000000000000000000000010000000b",
-        "and eax, 11111111111111111111111111001111b",
-        "mov cr4, eax",
+    interrupts::without_interrupts(|| {
+        asm!(
+            "xchg bx, bx",
+            "mov eax, cr3",
+            "and eax, 0x00000FFF",
+            "or eax, edx",
+            "or eax, 00000000000000000000000000001000b",
+            "mov cr3, eax",
 
-        "mov eax, cr0",
-        "or eax, 10000000000000000000000010000001b",
-        "mov cr0, eax",
+            "mov eax, cr4",
+            "or eax, 00000000000000000000000010000000b",
+            "and eax, 11111111111111111111111111001111b",
+            "mov cr4, eax",
 
-        in("edx") pdt_ref
-    );
+            "mov eax, cr0",
+            "or eax, 10000000000000000000000000000001b",
+            "mov cr0, eax",
 
-    println!("Page setup succesfull!");
+            in("edx") pdt_ref
+        );
+
+        println!("Page setup succesfull!");
+    });
+    x86::int!(0x3);
+
 }
 
 unsafe fn map_table(start : VirtAddress, phys_start : u32) {
@@ -295,6 +315,7 @@ unsafe fn map_pages(start : VirtAddress, end : VirtAddress, phys_start : u32) {
     let mut current_phys : u32 = phys_start;
     let mut current_table = LOADED_PAGE_TABLES;
 
+    println!("{:x}", addr_of!(PTS[current_table]) as usize);
     while current_virtual.0 <= end.0  { 
         PTS[current_table]
         .page_frames[current_virtual.frame_index()] = PageFrame {
@@ -327,8 +348,10 @@ unsafe fn map_pages(start : VirtAddress, end : VirtAddress, phys_start : u32) {
 
         //let mut pd_handle = &mut PDT;
 
+        let page_table = addr_of!(PTS[LOADED_PAGE_TABLES + i]) as u32;
+        println!("{:x}: {}", page_table, LOADED_PAGE_TABLES + i);
         PDT.pde[address.dir_offset()] = PageDirectoryEntry {
-            address : (&PTS[LOADED_PAGE_TABLES + i] as *const _) as u32,
+            address : page_table,
             avl : 0,
             ps : false,
             avl2 : false,
@@ -339,6 +362,7 @@ unsafe fn map_pages(start : VirtAddress, end : VirtAddress, phys_start : u32) {
             r_w : true,
             p : true,
         }.into();
+        println!("{:x}", PDT.pde[address.dir_offset()].0);
 
         //We are storing page tables as they come.
         //Contiguos loaded pages do not correspond to contiguos virtual

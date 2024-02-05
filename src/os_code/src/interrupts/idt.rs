@@ -10,6 +10,7 @@ use crate::interrupts::Handler;
 const IDT_SIZE : usize = 48; // 32 are CPU mapped and 16 are PIC mapped
 
 //Interrupt Descriptor Table
+#[derive(Debug)]
 pub struct Idt([Igd; IDT_SIZE]); 
 
 //Interrupt Gate Descriptor
