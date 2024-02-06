@@ -2,7 +2,6 @@
 use core::convert::From;
 use core::ops::Deref;
 use core::arch::asm;
-use lazy_static::lazy_static;
 
 use crate::interrupts;
 use crate::println;
@@ -16,6 +15,8 @@ use crate::println;
 // CR4.PAE = 0 uses 32-bit paging mode,
 // IA32_EFER.LME = 0. This is ensured by the processor when CR0.PG = 1 && CR4.PAE = 0.
 // CR4.PSE = 0 to use 4kiB pages.
+// CR0.WP also gets enabled by this code so we can have hardware level 
+// memory protection.
 
 const NUM_PTS : usize = 9;
 const PDT_ADDR : u32 = 0x76000;
@@ -24,13 +25,9 @@ const TABLE_SIZE : u32 = 4096; //Size in bytes of tables
 
 type PtArray = [PageTable; NUM_PTS];
 
-lazy_static! {
-    static ref HACK : u32 = {
-        //mem_init_tables();
-        0
-    };
-
-}
+//These would be extremely unsafe
+//but there is no problem as this is kernel code managing memory directly. 
+//There is an external map of memory with this space occupied.
 static mut PDT : *mut PageDirectoryTable = 
     PDT_ADDR as *mut PageDirectoryTable;
 
@@ -273,9 +270,13 @@ impl From<PageFrameMemRep> for PageFrame {
 pub fn init() {
     mem_init_tables();
     unsafe {
-        //We are identity mapping the first MiB
-        let ident_address = VirtAddress(0x0);
-        map_table(ident_address, 0x0);
+        // We are identity mapping the first MiB,
+        // that is, 256 page frames.
+        let ident_start_frame = VirtAddress(0x0);
+        let ident_end_frame = VirtAddress(255 * 4096);
+
+        //map_table(ident_address, 0x0);
+        map_pages(ident_start_frame, ident_end_frame, 0x0); 
         println!("Succesfully mapped first MiB");
 
         // TO DO: move kernel code to 0x100000;
@@ -296,22 +297,13 @@ pub fn init() {
 unsafe fn enable_paging() {
     //For reference about control registers manipulation
     //see top of the file.
-    let pdt_ref = core::ptr::addr_of!(PDT) as usize;
+    let pdt_ref = PDT_ADDR as usize;
     println!("{:x}", pdt_ref);
     
-    /*
-    let mut idt : x86::dtables::DescriptorTablePointer<interrupts::idt::Idt> = Default::default();
-    x86::dtables::sidt(&mut idt);
-    println!("{:x}", core::ptr::addr_of!(idt) as usize);
-    println!("\n{:x?}", *(idt.base as *const interrupts::idt::Igd));
-    */
-
-    //pdt_ref = pdt_ref << 8;
 
     println!("Ready to enable paging...");
     interrupts::without_interrupts(|| {
         asm!(
-            "xchg bx, bx",
             "mov eax, cr3",
             "and eax, 0x00000FFF",
             "or eax, edx",
@@ -324,21 +316,20 @@ unsafe fn enable_paging() {
             "mov cr4, eax",
 
             "mov eax, cr0",
-            "or eax, 10000000000000000000000000000001b",
+            "or eax, 10000000000000010000000000000001b",
             "mov cr0, eax",
-            "nop",
             "nop",
 
             in("edx") pdt_ref
         );
 
-        //println!("Page setup succesfull!");
+        println!("Page setup succesfull!");
     });
-    x86::int!(0x3);
-
 }
 
-unsafe fn map_table(start : VirtAddress, phys_start : u32) {
+// maps a full table
+// 4 MiB = 1024 page frames * 4 KiB per page frame
+unsafe fn _map_table(start : VirtAddress, phys_start : u32) {
     map_pages(start, VirtAddress(start.0 + (1023 * 4096) as u32), phys_start);
 }
 
@@ -354,7 +345,7 @@ unsafe fn map_pages(start : VirtAddress, end : VirtAddress, phys_start : u32) {
         (*PTS)[current_table]
         .page_frames[current_virtual.frame_index()] = PageFrame {
             address : current_phys,
-            avl : 0,
+            avl : 0x0,
             g : true,
             pat : false,
             dirty : false,
@@ -386,7 +377,7 @@ unsafe fn map_pages(start : VirtAddress, end : VirtAddress, phys_start : u32) {
 
         (*PDT).pde[address.dir_offset()] = PageDirectoryEntry {
             address : table_addr, 
-            avl : 0,
+            avl : 0xf,
             ps : false,
             avl2 : false,
             accessed : false,

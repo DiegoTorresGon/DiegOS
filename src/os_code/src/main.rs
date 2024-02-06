@@ -22,26 +22,21 @@ pub extern "C" fn _start() -> ! {
 
     screen::init_out(RepCode::new(FB_BLACK, FB_WHITE));
     interrupts::init();
+    paging::init();
 
-    //OutHandler::clear_screen();
+    OutHandler::clear_screen();
 
     print!("\t\tDiegOS\n\n");
     OutHandler::set_rep_code(RepCode::new(FB_BLACK, FB_LIGHT_GREY));
     print!("Booting process has started.\n\
             We are initializing some stuff.\n\
             Hold tightly...\n");
-
-
-    //println!("{:?}", x86::segmentation::cs());
     /*
     unsafe {
         x86::int!(0x3);
     };
-
     */
-    paging::init();
 
-    //OutHandler::clear_screen();
     println!("Succesfully initialized so far...");
 
 

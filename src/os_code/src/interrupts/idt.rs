@@ -39,8 +39,6 @@ impl Idt {
             base : self as *const _
         };
 
-        use crate::println;
-        println!("Loading IDT at: {:x?}", &descriptor_ptr);
         unsafe { lidt(&descriptor_ptr) };
     }
 
