@@ -1,7 +1,7 @@
 use lazy_static::lazy_static;
 use core::arch::asm;
 
-pub mod idt;
+mod idt;
 mod handlers;
 mod pic;
 

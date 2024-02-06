@@ -1,10 +1,9 @@
 #![no_std]
 #![no_main]
-//#![feature(rustc_private)]
 #![feature(panic_info_message)]
-#![feature(naked_functions)]
 #![feature(abi_x86_interrupt)]
 #![feature(asm_const)]
+#![feature(ptr_as_uninit)]
 
 //extern crate compiler_builtins;
 
@@ -24,7 +23,7 @@ pub extern "C" fn _start() -> ! {
     screen::init_out(RepCode::new(FB_BLACK, FB_WHITE));
     interrupts::init();
 
-    OutHandler::clear_screen();
+    //OutHandler::clear_screen();
 
     print!("\t\tDiegOS\n\n");
     OutHandler::set_rep_code(RepCode::new(FB_BLACK, FB_LIGHT_GREY));
@@ -42,8 +41,12 @@ pub extern "C" fn _start() -> ! {
     */
     paging::init();
 
-    //panic!("Awwwwgh!!! Horror panic is coming!!!");
-    interrupts::halt();
+    //OutHandler::clear_screen();
+    println!("Succesfully initialized so far...");
+
+
+    panic!("Awwwwgh!!! Horror panic is coming!!!");
+    //interrupts::halt();
 }
 
 #[panic_handler]

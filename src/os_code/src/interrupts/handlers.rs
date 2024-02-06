@@ -1,12 +1,13 @@
-use crate::{println, print};
-use crate::screen;
+use core::arch::asm;
+use pc_keyboard::DecodedKey;
+
 use crate::drivers::keyboard::keyboard_read;
 use crate::interrupts::ExceptionStackFrame;
 use crate::interrupts::pic;
+use crate::print;
+use crate::println;
+use crate::screen;
 
-use core::arch::asm;
-
-use pc_keyboard::DecodedKey;
 
 pub extern "x86-interrupt" fn divide_by_zero(
 stack_frame : ExceptionStackFrame) -> ! {
@@ -15,7 +16,6 @@ stack_frame : ExceptionStackFrame) -> ! {
 
 pub extern "x86-interrupt" fn breakpoint(
 stack_frame : ExceptionStackFrame) {
-    /*
     let old_color = screen::OutHandler::get_rep_code();
     screen::OutHandler::set_rep_code(
         screen::RepCode::new(screen::FB_BLACK, screen::FB_RED));
@@ -26,7 +26,6 @@ stack_frame : ExceptionStackFrame) {
     screen::OutHandler::set_rep_code(old_color);
 
     //magical breakpoint in bochs. This allows me to do debugging in bochs tool.
-    */
     unsafe {
         asm!("xchg bx, bx");
     }
@@ -37,9 +36,11 @@ stack_frame : ExceptionStackFrame) {
 
 pub extern "x86-interrupt" fn double_fault(
 stack_frame : ExceptionStackFrame, error_code : u32) -> ! {
+    /*
     unsafe {
         asm!("xchg bx, bx");
     }
+    */
     panic!("DOUBLE FAULT OCURRED AT {:#x?}:\n{:#x?}\n{:#x?}",
            stack_frame.instruction_ptr, stack_frame, error_code);
 }
@@ -69,9 +70,11 @@ pub extern "x86-interrupt" fn keyboard(_stack_frame : ExceptionStackFrame) {
 pub extern "x86-interrupt" fn gpf(stack_frame : ExceptionStackFrame,
                                   error_code : u32) 
 -> ! {
+    /*
     unsafe {
         asm!("xchg bx, bx");
     }
+    */
     panic!("GENERAL PROTECTION FAULT AT {:#x?}:\n{:#x?}\n{:#x?}",
            stack_frame.instruction_ptr, stack_frame, error_code);
 }
@@ -79,9 +82,11 @@ pub extern "x86-interrupt" fn gpf(stack_frame : ExceptionStackFrame,
 pub extern "x86-interrupt" fn page_fault(stack_frame : ExceptionStackFrame,
                                   error_code : u32) 
 -> ! {
+    /*
     unsafe {
         asm!("xchg bx, bx");
     }
+    */
     panic!("PAGE FAULT AT {:#x?}:\n{:#x?}\n{:#x?}",
            stack_frame.instruction_ptr, stack_frame, error_code);
 }
