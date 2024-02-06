@@ -10,11 +10,12 @@ use crate::interrupts::Handler;
 const IDT_SIZE : usize = 48; // 32 are CPU mapped and 16 are PIC mapped
 
 //Interrupt Descriptor Table
+#[derive(Debug)]
 pub struct Idt([Igd; IDT_SIZE]); 
 
 //Interrupt Gate Descriptor
 #[repr(C, packed)]
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct Igd {
     offset_low : u16,
     gdt_selector: SegmentSelector,
@@ -24,7 +25,7 @@ pub struct Igd {
 }
 
 #[repr(transparent)]
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct TypeAttributes(u8);
 
 impl Idt {
@@ -47,6 +48,7 @@ impl Idt {
     {
         let casted_handler = handler.as_u32();
         self.0[index as usize] = Igd::new(segmentation::cs(), casted_handler);
+        //println!("Handler : {:x?}", self.0[index as usize]);
         &mut self.0[index as usize].type_attr
     }
 }
@@ -56,7 +58,7 @@ impl Igd {
         let handler_ptr : u32 = handler as u32;
         let mut type_attr = TypeAttributes::default();
         type_attr.set_present();
-        type_attr.disable_interrupts(true);
+        type_attr.disable_interrupts(false);
         type_attr.set_privilege_level(Ring::Ring0 as u8);
 
         Igd {

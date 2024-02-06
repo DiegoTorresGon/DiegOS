@@ -1,18 +1,16 @@
 ; This will be a boot sector that will initially load some kernel code in C but will later be changed to Rust code...
 
 [org 0x7c00]
-KERNEL_OFFSET equ 0x1000	; This is to say we want to load kernel code with this offset. 4 kb
+KERNEL_OFFSET equ 0x9000	; This is to say we want to load kernel code with this offset. 4 kb
+STACK_ADDR equ 0x8ffc
 
 mov [BOOT_DRIVE], dl		; We are storing the boot drive we are using as a global variable.
 							; The BIOS loads boot drive number into dl.
 
-mov bp, 0x9000 				; This sets out stack bottom pointer.
+mov bp, STACK_ADDR 				; This sets out stack bottom pointer.
 mov sp, bp 					; This top pointer starts at the same location as botton (the stack is empty).
 
 call load_kernel			; Routine to load drive sectors corresponding to kernel.
-
-mov dx, BPOINT
-call print_hex
 
 call switch_to_pm			; Routine to switch CPU into proper 32-bit protected mode.
 
@@ -27,32 +25,24 @@ jmp $
 [bits 16]
 
 load_kernel:
+
 	mov bx, MSG_LOAD_KERNEL
 	call println
 
 	mov bx, KERNEL_OFFSET 	; This is were we actually tell the routine
 							; to load kernel code with this offset. 
-	mov dh, 54				; loading 54 sectors to leave space for the future
-							; when kernel is bigger. THIS IS THE MAXIMUN 
-							; TESTTED NUMBER
-							; BOCHS BIOS CAN LOAD.
+	mov dh, 127				; loading 127 sectors to leave space for 
+							; the future
+							; when kernel is bigger.  
+							; This as far as I can take it for now. 
+
 	mov dl, [BOOT_DRIVE]
 	call disk_load								
-
-	;add bx, 54 * 512
-	;mov dh, 0
-	;call disk_load
 
 	ret
 
 [bits 32]
 BEGIN_PM:
- 	mov ebx, MSG_PM
- 	call println32
-	
-	mov dx, BPOINT
-	call print32_hex
-BPOINT:
 	call KERNEL_OFFSET 
 
  	jmp $

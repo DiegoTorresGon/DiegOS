@@ -1,8 +1,39 @@
-floppya: 1_44=os.img, status=inserted
-display_library: sdl2 
+ata0: enabled=true, ioaddr1=0x1f0, ioaddr2=0x3f0, irq=14
+ata0-master: type=disk, path="disk.img", mode=flat, cylinders=6, heads=8, spt=21, sect_size=512, model="Generic 1234", biosdetect=auto, translation=none
+ata0-slave: type=none
+display_library: sdl2
 config_interface: textconfig
-boot: a
-log: bochsout.txt
+boot: disk
+log: bochsout
+logprefix: %t%e%d
 romimage: file=$BXSHARE/BIOS-bochs-latest
 memory: guest=128, host=512
 cpuid: level=6, apic=legacy
+
+magic_break: enabled=1
+port_e9_hack: enabled=0
+
+
+# this config makes ctrl-c to not work. Disable when not needed.
+# debug: action=report
+
+info: action=report
+error: action=report
+panic: action=ask
+
+plugin_ctrl: unmapped=true, biosdev=true, speaker=true, extfpuirq=true, parallel=true, serial=true, iodebug=true
+
+keyboard: type=mf, serial_delay=250, paste_delay=100000, user_shortcut=none
+mouse: type=ps2, enabled=false, toggle=ctrl+mbutton
+speaker: enabled=true, mode=system
+parport1: enabled=true, file=none
+parport2: enabled=false
+com1: enabled=true, mode=null
+
+
+private_colormap: enabled=0
+clock: sync=none, time0=local, rtc_sync=0
+# no cmosimage
+com2: enabled=false
+com3: enabled=false
+com4: enabled=false

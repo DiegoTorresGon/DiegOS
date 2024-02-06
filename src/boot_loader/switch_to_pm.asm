@@ -27,7 +27,7 @@ init_pm:
 	mov fs, ax
 	mov gs, ax
 
-	mov ebp, 0x9000	; Update stack position
+	mov ebp, STACK_ADDR	; Update stack position
 	mov esp, ebp
 
 	call BEGIN_PM	; This label is main boot code
