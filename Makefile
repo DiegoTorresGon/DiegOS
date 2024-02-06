@@ -14,7 +14,7 @@ BOOT_INCLUDES := $(wildcard $(BOOT)/utility/*.asm) $(wildcard $(BOOT)/*.asm)
 
 KERNEL_OBJ_DIR := src/os_code/target/i386-pc-none-gnu/release/deps
 
-KERNEL_INCLUDES := $(shell ls -R src/os_code | egrep ^'rlibc[^.]*\.o$^' | egrep -v ^'*.[^o]^')
+KERNEL_INCLUDES := $(shell ls -R src/os_code | egrep ^'(compiler_builtins|bit_flags|rlibc)[^.]*\.o$^' | egrep -v ^'*\.[^o]^')
 
 KERNEL_MAIN := $(KERNEL_OBJ_DIR)/$(shell ls -R src/os_code | egrep ^'os_code[^.]*\.o$^' | egrep -v ^'*\.[^o]^')
 KERNEL_FULL_INCLUDES := $(addprefix $(KERNEL_OBJ_DIR)/, $(KERNEL_INCLUDES))
