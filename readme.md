@@ -1,6 +1,6 @@
 # DiegOS
 ------
-Basic OS for the x86-i368 architecture.
+Basic OS for the x86-i386 architecture.
 Works in 32-bit Protected Mode.  
 Supports: 
 - 4-KiB paging to address up to 40 MiB of physical and 4 GiB of virtual space,
