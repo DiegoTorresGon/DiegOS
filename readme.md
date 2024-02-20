@@ -10,14 +10,14 @@ Supports:
 - VGA Frame Buffer driver,
 - Wrapper around Frame Buffer to create a standard println! macro interface,
 - Error handling mechanisms and debugging tools,
-- Memory Safety enforced by Rust, which saves from classical developing erros,
+- Memory Safety enforced by Rust, which saves from classical developing errors,
 - Automatic build process using GNU Make.
 	
 ## Installation:
 
 In order to successfully build this project you must have the following software on your machine:
 
-	GNU Binutils package for building rustup and custom target architecture compilation.
+	GNU Binutils package for nasm and ld linker.
 		Version: I used 2.4
 	rustup:
 		Insllation on https://doc.rust-lang.org/book/ch01-01-installation.html
@@ -25,7 +25,7 @@ In order to successfully build this project you must have the following software
 		$ curl --proto '=https' --tlsv1.2 https://sh.rustup.rs -sSf | sh
 		
 		Must also install nightly toolchain.
-  		rustup toolchain install nigthly
+  		$ rustup toolchain install nigthly
 	Bochs: features: --enable-debugger --with-sdl2
 		Probably the Display Library could be changed but I tested with sdl2.
 		Could be installed through package manager or through source at,
